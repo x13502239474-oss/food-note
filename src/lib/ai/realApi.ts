@@ -58,7 +58,7 @@ function friendlyError(status: number, body: string): Error {
   return new Error(parsed?.error || `识别失败（${status}）：${detail}`)
 }
 
-async function callProxy(payload: Record<string, unknown>, timeoutMs = 60000): Promise<Response> {
+async function callProxy(payload: Record<string, unknown>, timeoutMs = 120000): Promise<Response> {
   const url = proxyUrl()
   if (!url) throw new Error('识别服务未配置，请检查网络后重试。')
   const controller = new AbortController()
@@ -72,7 +72,7 @@ async function callProxy(payload: Record<string, unknown>, timeoutMs = 60000): P
     })
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
-      throw new Error('识别超时，请检查网络后重试。')
+      throw new Error('网络较慢，识别超过 2 分钟未完成。请换用更稳定的网络后重试。')
     }
     throw new Error('无法连接识别服务，请检查网络后重试。')
   } finally {

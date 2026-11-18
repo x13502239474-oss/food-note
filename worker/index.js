@@ -68,6 +68,7 @@ export default {
 
     const mealType = MEAL_NAMES[payload.meal_type] ? payload.meal_type : 'lunch'
     const userPrompt = `请分析这张照片里的食物，判断这属于${MEAL_NAMES[mealType]}。严格只输出 JSON，不要代码块。`
+    const t0 = Date.now()
 
     let resp
     try {
@@ -139,6 +140,8 @@ export default {
       return json({ ok: false, error: '识别结果格式异常，请重试' }, 502)
     }
 
-    return json({ ok: true, result })
+    const elapsedMs = Date.now() - t0
+    console.log(`[food-note] analyze ok in ${elapsedMs}ms, imageChars=${image.length}`)
+    return json({ ok: true, result, elapsed_ms: elapsedMs })
   },
 }
