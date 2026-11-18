@@ -76,8 +76,20 @@ export interface UserProfile {
   activityLevel: 'sedentary' | 'light' | 'moderate' | 'active' | 'very_active'
 }
 
+/** 用户自己填写的视觉模型配置（Key 只存在本机浏览器） */
+export interface AiConfig {
+  /** 预设服务商 id，或 'custom' */
+  provider: string
+  /** OpenAI 兼容服务的 Base URL，例如 https://dashscope.aliyuncs.com/compatible-mode/v1 */
+  baseUrl: string
+  apiKey: string
+  /** 支持图片理解的模型名 */
+  model: string
+}
+
 /** 全站持久化数据 */
 export interface AppData {
   records: MealRecord[]
   profile: UserProfile
+  aiConfig: AiConfig
 }

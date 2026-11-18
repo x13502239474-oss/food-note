@@ -4,7 +4,7 @@ import {
   Loader2, Pencil, Plus, Trash2, X,
 } from 'lucide-react'
 import type { AnalysisResult, Confidence, FoodItem, MealType, PortionScale } from '@/types'
-import { IS_DEMO_MODE, analyzeFood } from '@/lib/ai'
+import { isDemoMode, analyzeFood } from '@/lib/ai'
 import { applyPortion } from '@/lib/ai/portion'
 import { MEAL_LABELS, PORTION_LABELS } from '@/lib/constants'
 import { compressImage, defaultMealType, round, sumNutrition, uid } from '@/lib/utils'
@@ -30,7 +30,8 @@ const CONFIDENCE_TEXT: Record<Confidence, string> = {
 }
 
 export default function AnalyzePage({ initialFile, onClose, onSaved }: Props) {
-  const { addRecord } = useStore()
+  const { addRecord, data: appData } = useStore()
+  const demoMode = isDemoMode(appData.aiConfig)
   const [stage, setStage] = useState<Stage>(initialFile ? 'preview' : 'upload')
   const [photo, setPhoto] = useState<string | undefined>()
   const [fileName, setFileName] = useState('')
@@ -85,7 +86,7 @@ export default function AnalyzePage({ initialFile, onClose, onSaved }: Props) {
     setError('')
     setStage('loading')
     try {
-      const data = await analyzeFood(photo, mealType, fileName)
+      const data = await analyzeFood(photo, mealType, appData.aiConfig, fileName)
       setResult(data)
       setStage('result')
       window.scrollTo({ top: 0 })
@@ -171,10 +172,10 @@ export default function AnalyzePage({ initialFile, onClose, onSaved }: Props) {
         <span className="font-serif text-[15px] font-semibold">食物分析</span>
         <span
           className={`border px-2 py-1 text-[10px] tracking-wide ${
-            IS_DEMO_MODE ? 'border-line bg-sand text-[#8A6647]' : 'border-sage text-sage'
+            demoMode ? 'border-line bg-sand text-[#8A6647]' : 'border-sage text-sage'
           }`}
         >
-          {IS_DEMO_MODE ? '演示模式' : 'AI 识别'}
+          {demoMode ? '演示模式' : 'AI 识别'}
         </span>
       </header>
 
@@ -215,7 +216,7 @@ export default function AnalyzePage({ initialFile, onClose, onSaved }: Props) {
             从相册上传 JPG / PNG / WEBP
           </label>
 
-          {IS_DEMO_MODE && (
+          {demoMode && (
             <div className="mt-8 flex gap-2 border-l-2 border-sage bg-sage-soft/50 px-3 py-3 text-[11px] leading-relaxed text-ink-soft">
               <Info size={14} className="mt-0.5 shrink-0 text-sage" />
               <span>
@@ -314,7 +315,7 @@ export default function AnalyzePage({ initialFile, onClose, onSaved }: Props) {
               />
             ))}
           </div>
-          {IS_DEMO_MODE && (
+          {demoMode && (
             <p className="mt-8 text-[10px] text-muted">演示模式 · 正在生成示例分析结果</p>
           )}
         </section>

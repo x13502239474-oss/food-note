@@ -1,9 +1,16 @@
 import { useEffect, useState } from 'react'
-import { Check, Info, Lock, Save, Sparkles } from 'lucide-react'
-import type { UserProfile } from '@/types'
+import { Check, Eye, EyeOff, Info, Loader2, Lock, Save, Sparkles, Trash2, Wifi } from 'lucide-react'
+import type { AiConfig, UserProfile } from '@/types'
 import TopBar from '@/components/TopBar'
 import { ACTIVITY_FACTORS, ACTIVITY_LABELS } from '@/lib/constants'
-import { IS_DEMO_MODE } from '@/lib/ai'
+import { isDemoMode } from '@/lib/ai'
+import { testAiConnection } from '@/lib/ai/realApi'
+import {
+  DEFAULT_AI_CONFIG,
+  PROVIDER_PRESETS,
+  configFromPreset,
+  hasAiConfig,
+} from '@/lib/ai/config'
 import { round } from '@/lib/utils'
 import { useStore } from '@/store'
 
@@ -18,11 +25,18 @@ function calcBmr(profile: UserProfile): number | null {
 }
 
 export default function MePage() {
-  const { data, setProfile } = useStore()
+  const { data, setProfile, setAiConfig } = useStore()
   const [form, setForm] = useState<UserProfile>(data.profile)
   const [saved, setSaved] = useState(false)
+  const [aiForm, setAiForm] = useState<AiConfig>(data.aiConfig)
+  const [showKey, setShowKey] = useState(false)
+  const [testing, setTesting] = useState(false)
+  const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null)
 
   useEffect(() => setForm(data.profile), [data.profile])
+  useEffect(() => setAiForm(data.aiConfig), [data.aiConfig])
+
+  const demoMode = isDemoMode(data.aiConfig)
 
   const bmr = calcBmr(form)
   const tdee = bmr ? round(bmr * (ACTIVITY_FACTORS[form.activityLevel] ?? 1.55)) : null
@@ -40,7 +54,189 @@ export default function MePage() {
 
   return (
     <>
-      <TopBar title="我的" subtitle="目标与身体数据" />
+      <TopBar title="我的" subtitle="目标与 AI 识别设置" />
+
+      {/* AI 识别配置 */}
+      <section className="px-5 pt-3">
+        <div className="flex items-center justify-between">
+          <div className="eyebrow">AI VISION · 图像识别</div>
+          <span
+            className={`border px-2 py-1 text-[10px] tracking-wide ${
+              demoMode ? 'border-line bg-sand text-[#8A6647]' : 'border-sage bg-mist text-sage'
+            }`}
+          >
+            {demoMode ? '演示模式' : '真实识别'}
+          </span>
+        </div>
+
+        <div className="paper-card mt-4 p-5">
+          <p className="text-[13px] font-medium leading-relaxed text-ink">
+            接入视觉大模型后，拍照识别会真正看懂照片内容。
+          </p>
+          <p className="mt-1.5 text-[11px] leading-relaxed text-muted">
+            API Key 只保存在这台设备的浏览器里，不会上传到任何服务器，也不会写进网站代码。
+            你需要自己去服务商申请一个 Key（多数有免费额度）。
+          </p>
+
+          <label className="mt-5 block">
+            <span className="text-[11px] font-medium text-ink">服务商预设</span>
+            <select
+              value={aiForm.provider}
+              onChange={(e) => {
+                const preset = PROVIDER_PRESETS.find((p) => p.id === e.target.value)
+                if (preset) setAiForm(configFromPreset(preset, aiForm.apiKey))
+              }}
+              className={inputClass}
+            >
+              {PROVIDER_PRESETS.map((preset) => (
+                <option key={preset.id} value={preset.id}>
+                  {preset.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {(() => {
+            const preset = PROVIDER_PRESETS.find((p) => p.id === aiForm.provider)
+            return preset ? (
+              <div className="mt-2 space-y-1.5 text-[10px] leading-relaxed text-muted">
+                <p>{preset.hint}</p>
+                {preset.keyUrl && (
+                  <a
+                    href={preset.keyUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-block text-sage underline underline-offset-2"
+                  >
+                    前往申请 API Key ↗
+                  </a>
+                )}
+              </div>
+            ) : null
+          })()}
+
+          <label className="mt-4 block">
+            <span className="text-[11px] font-medium text-ink">API Key</span>
+            <div className="relative mt-1.5">
+              <input
+                type={showKey ? 'text' : 'password'}
+                autoComplete="off"
+                spellCheck={false}
+                value={aiForm.apiKey}
+                placeholder="粘贴你的密钥"
+                onChange={(e) => {
+                  setAiForm({ ...aiForm, apiKey: e.target.value, provider: 'custom' })
+                  setTestResult(null)
+                }}
+                className={`${inputClass} mt-0 pr-11`}
+              />
+              <button
+                type="button"
+                onClick={() => setShowKey((v) => !v)}
+                aria-label={showKey ? '隐藏密钥' : '显示密钥'}
+                className="absolute right-0 top-0 flex h-full w-11 items-center justify-center text-muted"
+              >
+                {showKey ? <EyeOff size={15} /> : <Eye size={15} />}
+              </button>
+            </div>
+          </label>
+
+          <div className="mt-4 grid grid-cols-1 gap-4">
+            <label className="block">
+              <span className="text-[11px] text-muted">接口地址 Base URL</span>
+              <input
+                type="url"
+                inputMode="url"
+                spellCheck={false}
+                value={aiForm.baseUrl}
+                placeholder="https://.../v1"
+                onChange={(e) => {
+                  setAiForm({ ...aiForm, baseUrl: e.target.value, provider: 'custom' })
+                  setTestResult(null)
+                }}
+                className={inputClass}
+              />
+            </label>
+            <label className="block">
+              <span className="text-[11px] text-muted">视觉模型名</span>
+              <input
+                type="text"
+                spellCheck={false}
+                value={aiForm.model}
+                placeholder="例如 qwen-vl-max-latest"
+                onChange={(e) => {
+                  setAiForm({ ...aiForm, model: e.target.value, provider: 'custom' })
+                  setTestResult(null)
+                }}
+                className={inputClass}
+              />
+            </label>
+          </div>
+
+          <div className="mt-5 flex gap-2">
+            <button
+              type="button"
+              disabled={!hasAiConfig(aiForm) || testing}
+              onClick={() => {
+                setAiConfig(aiForm)
+                setSaved(true)
+                window.setTimeout(() => setSaved(false), 1800)
+              }}
+              className="focus-ring press flex flex-1 items-center justify-center gap-2 bg-sage py-3 text-xs font-medium text-white disabled:opacity-40"
+            >
+              {saved ? <><Check size={15} /> 已保存</> : <><Save size={15} /> 保存配置</>}
+            </button>
+            <button
+              type="button"
+              disabled={!hasAiConfig(aiForm) || testing}
+              onClick={async () => {
+                setTesting(true)
+                setTestResult(null)
+                try {
+                  await testAiConnection(aiForm)
+                  setTestResult({ ok: true, message: '连接成功，密钥与地址可用。' })
+                } catch (error) {
+                  setTestResult({
+                    ok: false,
+                    message: error instanceof Error ? error.message : '连接失败，请检查配置。',
+                  })
+                } finally {
+                  setTesting(false)
+                }
+              }}
+              className="focus-ring press flex items-center justify-center gap-2 border border-sage px-4 py-3 text-xs font-medium text-sage disabled:opacity-40"
+            >
+              {testing ? <Loader2 size={15} className="animate-spin" /> : <Wifi size={15} />}
+              测试
+            </button>
+          </div>
+
+          {testResult && (
+            <p
+              className={`mt-3 text-[11px] leading-relaxed ${
+                testResult.ok ? 'text-sage' : 'text-[#A6503F]'
+              }`}
+            >
+              {testResult.message}
+            </p>
+          )}
+
+          {!demoMode && (
+            <button
+              type="button"
+              onClick={() => {
+                setAiConfig(DEFAULT_AI_CONFIG)
+                setTestResult(null)
+              }}
+              className="focus-ring press mt-4 flex items-center gap-1.5 text-[11px] text-muted underline underline-offset-2"
+            >
+              <Trash2 size={12} /> 清除配置，回到演示模式
+            </button>
+          )}
+        </div>
+      </section>
+
+      <hr className="hairline mx-5 mt-8" />
 
       <section className="px-5 pt-3">
         <div className="eyebrow">DAILY GOAL · 每日目标</div>
@@ -221,9 +417,9 @@ export default function MePage() {
           </p>
           <p className="flex items-start gap-2">
             <Info size={13} className="mt-0.5 shrink-0" />
-            {IS_DEMO_MODE
+            {demoMode
               ? '当前为演示模式：识别结果来自内置样例，热量与营养均为示例估算。'
-              : '当前已接入识别接口；结果仍为估算值，请结合自己的判断核对。'}
+              : '当前已接入视觉模型；照片会发送给你配置的服务商，结果仍为估算值，请结合自己的判断核对。'}
           </p>
           <p>FOOD NOTE / 食物研究所 · 看见食物，了解热量。</p>
         </div>

@@ -1,10 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import type { AppData, MealRecord, UserProfile } from '@/types'
+import type { AiConfig, AppData, MealRecord, UserProfile } from '@/types'
 import { loadData, saveData } from '@/lib/storage'
 
 interface StoreValue {
   data: AppData
   setProfile: (patch: Partial<UserProfile>) => void
+  setAiConfig: (patch: Partial<AiConfig>) => void
   addRecord: (record: MealRecord) => void
   updateRecord: (id: string, patch: Partial<MealRecord>) => void
   deleteRecord: (id: string) => void
@@ -26,6 +27,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setData((prev) => ({ ...prev, profile: { ...prev.profile, ...patch } }))
   }, [])
 
+  const setAiConfig = useCallback((patch: Partial<AiConfig>) => {
+    setData((prev) => ({ ...prev, aiConfig: { ...prev.aiConfig, ...patch } }))
+  }, [])
+
   const addRecord = useCallback((record: MealRecord) => {
     setData((prev) => ({ ...prev, records: [record, ...prev.records] }))
   }, [])
@@ -42,8 +47,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const value = useMemo(
-    () => ({ data, setProfile, addRecord, updateRecord, deleteRecord, storageWarning }),
-    [data, setProfile, addRecord, updateRecord, deleteRecord, storageWarning],
+    () => ({ data, setProfile, setAiConfig, addRecord, updateRecord, deleteRecord, storageWarning }),
+    [data, setProfile, setAiConfig, addRecord, updateRecord, deleteRecord, storageWarning],
   )
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>

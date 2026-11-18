@@ -1,11 +1,11 @@
 /// <reference types="vite/client" />
 
+/**
+ * 视觉模型配置现在由用户在「我的」页填写，密钥只存本机浏览器，
+ * 不再使用构建时环境变量（避免把密钥打包进公开的 JS 文件）。
+ */
 interface ImportMetaEnv {
-  /** 真实视觉识别接口的完整 URL（例如自建代理 /api/analyze）。留空即演示模式。 */
-  readonly VITE_VISION_API_URL?: string
-  /** 仅用于本地/可信环境；生产环境必须由服务端代理持有密钥。 */
-  readonly VITE_VISION_API_KEY?: string
-  readonly VITE_VISION_MODEL?: string
+  readonly [key: string]: string | boolean | undefined
 }
 
 interface ImportMeta {
