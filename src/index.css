@@ -1,0 +1,83 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-canvas text-ink font-sans antialiased;
+    margin: 0;
+    min-height: 100vh;
+  }
+
+  button,
+  input,
+  select {
+    font: inherit;
+  }
+
+  button {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  ::selection {
+    @apply bg-sage-soft text-ink;
+  }
+}
+
+@layer components {
+  /* 杂志感小标签：小字号 + 大字距 */
+  .eyebrow {
+    @apply text-[10px] font-medium uppercase tracking-[0.2em] text-muted;
+  }
+
+  .magazine-title {
+    @apply font-serif font-semibold tracking-[-0.02em] text-ink;
+  }
+
+  .hairline {
+    @apply border-0 border-t border-line;
+  }
+
+  /* 克制的纸面卡片：1px 细边 + 极小圆角，避免廉价圆角感 */
+  .paper-card {
+    @apply border border-line bg-paper;
+    border-radius: 4px;
+  }
+
+  .stat-number {
+    font-variant-numeric: tabular-nums lining-nums;
+    @apply font-serif font-semibold tracking-[-0.03em];
+  }
+
+  .photo-magazine {
+    filter: saturate(0.94) contrast(1.02);
+  }
+
+  .focus-ring {
+    @apply outline-none focus-visible:ring-2 focus-visible:ring-sage focus-visible:ring-offset-2 focus-visible:ring-offset-canvas;
+  }
+
+  .press {
+    @apply transition-transform duration-150 active:scale-[0.98];
+  }
+}
+
+@layer utilities {
+  .safe-bottom {
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0px);
+  }
+
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
