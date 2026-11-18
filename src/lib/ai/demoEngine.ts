@@ -235,10 +235,38 @@ const SEEDS: MealSeed[] = [
     ],
     notes: ['饮品是否加糖、使用何种牛奶无法从照片确认。'],
   },
+  {
+    name: '橙子',
+    confidence: 'medium',
+    range: { min: 75, max: 130 },
+    foods: [
+      {
+        name: '橙子', category: '水果', ingredients: ['橙子'], cooking: '生食',
+        weight_g: 200, calories: 94, protein: 1.2, carbs: 23.4, fat: 0.2, fiber: 4.8,
+        basis: '按 1 个中等大小橙子（约 200g 可食部）估算',
+        uncertainty: '照片难以判断橙子的数量与实际可食重量',
+      },
+    ],
+    suggestions: [
+      '橙子富含维生素 C 与膳食纤维，作为加餐是不错的选择。',
+      '水果中的天然糖分不同于添加糖，但也不宜一次吃太多。',
+      '若这一餐蛋白质较少，可以搭配少量坚果或酸奶。',
+    ],
+    notes: ['仅凭照片无法准确判断橙子的数量与可食部分重量。'],
+  },
 ]
 
+interface Tone {
+  green: number
+  bright: number
+  warm: number
+  r: number
+  g: number
+  b: number
+}
+
 /** 从图片取粗略色调，用于演示模式下给出「看起来相关」的结果 */
-function imageTone(dataUrl?: string): Promise<{ green: number; bright: number; warm: number } | null> {
+function imageTone(dataUrl?: string): Promise<Tone | null> {
   if (!dataUrl) return Promise.resolve(null)
   return new Promise((resolve) => {
     const img = new Image()
@@ -260,7 +288,8 @@ function imageTone(dataUrl?: string): Promise<{ green: number; bright: number; w
       r /= count
       g /= count
       b /= count
-      resolve({ green: g - (r + b) / 2, bright: (r + g + b) / 3, warm: r - b })
+      // green 只有在绿色明显主导时才为正；旧算法 g-(r+b)/2 会把橙色误判成绿色
+      resolve({ green: g - Math.max(r, b), bright: (r + g + b) / 3, warm: r - b, r, g, b })
     }
     img.onerror = () => resolve(null)
     img.src = dataUrl
@@ -271,9 +300,10 @@ function pickSeed(index: number): MealSeed {
   return SEEDS[((index % SEEDS.length) + SEEDS.length) % SEEDS.length]
 }
 
-function chooseSeedIndex(name: string, tone: { green: number; bright: number; warm: number } | null): number {
+function chooseSeedIndex(name: string, tone: Tone | null): number {
   const lower = name.toLowerCase()
   const rules: Array<[RegExp, number]> = [
+    [/橙|orange|水果|fruit|苹果|apple|香蕉|banana/, 7],
     [/沙拉|salad|藜麦|轻食|鸡胸/, 1],
     [/牛肉面|拉面|noodle|面条/, 3],
     [/炒饭|fried.?rice/, 4],
@@ -286,7 +316,10 @@ function chooseSeedIndex(name: string, tone: { green: number; bright: number; wa
     if (pattern.test(lower)) return index
   }
   if (tone) {
-    if (tone.green > 8) return 1
+    if (tone.green > 10) return 1
+    // 橙 / 黄 / 红色鲜艳单一食物：橙子、苹果等水果
+    if (tone.r > tone.g * 1.2 && tone.g > tone.b * 1.2 && tone.bright > 100) return 7
+    if (tone.r > tone.g * 1.35 && tone.r > tone.b * 1.35 && tone.bright > 90) return 7
     if (tone.bright > 175) return 2
     if (tone.warm > 18 && tone.bright < 160) return 0
   }
