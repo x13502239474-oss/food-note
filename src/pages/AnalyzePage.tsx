@@ -30,8 +30,8 @@ const CONFIDENCE_TEXT: Record<Confidence, string> = {
 }
 
 export default function AnalyzePage({ initialFile, onClose, onSaved }: Props) {
-  const { addRecord, data: appData } = useStore()
-  const demoMode = isDemoMode(appData.aiConfig)
+  const { addRecord } = useStore()
+  const demoMode = isDemoMode()
   const [stage, setStage] = useState<Stage>(initialFile ? 'preview' : 'upload')
   const [photo, setPhoto] = useState<string | undefined>()
   const [fileName, setFileName] = useState('')
@@ -86,7 +86,7 @@ export default function AnalyzePage({ initialFile, onClose, onSaved }: Props) {
     setError('')
     setStage('loading')
     try {
-      const data = await analyzeFood(photo, mealType, appData.aiConfig, fileName)
+      const data = await analyzeFood(photo, mealType, fileName)
       setResult(data)
       setStage('result')
       window.scrollTo({ top: 0 })

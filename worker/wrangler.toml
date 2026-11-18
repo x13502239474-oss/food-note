@@ -1,0 +1,4 @@
+name = "food-note-ai"
+main = "index.js"
+compatibility_date = "2025-11-18"
+workers_dev = true

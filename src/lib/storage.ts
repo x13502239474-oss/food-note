@@ -1,4 +1,4 @@
-import type { AiConfig, AppData, MealRecord, UserProfile } from '@/types'
+import type { AppData, MealRecord, UserProfile } from '@/types'
 import { isToday } from '@/lib/utils'
 import { DEFAULT_AI_CONFIG } from '@/lib/ai/config'
 
@@ -21,12 +21,11 @@ function safeParse(raw: string | null): AppData {
   if (!raw) return DEFAULT_DATA
   try {
     const parsed = JSON.parse(raw) as Partial<AppData>
-    const ai = parsed.aiConfig as Partial<AiConfig> | undefined
     return {
       records: Array.isArray(parsed.records) ? parsed.records : [],
       profile: { ...DEFAULT_PROFILE, ...(parsed.profile ?? {}) },
-      // 老版本数据没有 aiConfig，落到默认演示模式
-      aiConfig: { ...DEFAULT_AI_CONFIG, ...(ai ?? {}) },
+      // 零配置模式：忽略并清除旧版本用户手动填过的 API Key，避免密钥长期留在浏览器
+      aiConfig: { ...DEFAULT_AI_CONFIG },
     }
   } catch {
     return DEFAULT_DATA
