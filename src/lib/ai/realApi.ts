@@ -70,6 +70,9 @@ function friendlyError(status: number, body: string): Error {
   if (status >= 500) {
     return new Error(`识别服务暂时不可用（${status}），请稍后重试。${head}`)
   }
+  if (status === 400) {
+    return new Error(`请求参数被拒绝（400），通常是模型名不对，或这家服务不支持图片输入。${head}`)
+  }
   return new Error(`识别服务返回 ${status}：${head || '无详细说明'}`)
 }
 
@@ -165,7 +168,8 @@ export async function analyzeWithRealApi(
         ],
       },
     ],
-    1800,
+    // 1024 是所有预设服务商都能接受的安全值；智谱 glm-4v-flash 上限正是 1024
+    1024,
   )
 
   if (!response.ok) {
