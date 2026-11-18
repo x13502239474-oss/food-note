@@ -19,47 +19,9 @@ const MEAL_NAMES = {
   snack: '加餐',
 }
 
-const SYSTEM_PROMPT = `你是一名严谨的食物营养分析师。用户会发来一张食物照片，你要仔细观察并估算。
-
-必须只输出一个 JSON 对象，不要输出任何解释文字，不要使用代码块标记。
-
-JSON 结构：
-{
-  "meal_name": "这一餐的名称",
-  "total_calories": 整数,
-  "calorie_range": { "min": 整数, "max": 整数 },
-  "foods": [
-    {
-      "name": "食物名称",
-      "category": "主食/肉类/蔬菜/水果/饮品/零食/其他",
-      "ingredients": ["主要食材"],
-      "cooking": "烹饪方式，未知写「未知」",
-      "weight_g": 估算克数,
-      "calories": 整数,
-      "protein": 克,
-      "carbs": 克,
-      "fat": 克,
-      "fiber": 克,
-      "basis": "估算依据，例如参照常见餐盘/碗的尺寸，或常见每100克热量",
-      "uncertainty": "无法确认的部分，例如用油、酱料、实际份量；没有则留空"
-    }
-  ],
-  "nutrition": { "protein": 克, "carbs": 克, "fat": 克, "fiber": 克 },
-  "suggestions": ["2-3 条具体可执行的建议"],
-  "confidence": "high 或 medium 或 low",
-  "notes": ["其他需要提醒用户的不确定性"]
-}
-
-严格要求：
-1. 照片里有几种食物就分别列出几种，不要只给一个总热量。看不到的食物不要编造。
-2. 重量只能估算：参照盘子/碗/勺/手的大小，或同类食物的常见份量，并在 basis 里说明依据。
-3. 每种食物的 calories 约等于其重量对应的常见热量；total_calories 必须等于所有 foods 的 calories 之和。
-4. nutrition 四项必须等于所有 foods 对应项之和，不要凭空给数。
-5. calorie_range 体现照片估算的误差，一般取总量的约 85% 到 115%。
-6. 烹饪油、酱料、隐藏脂肪如果无法从照片判断，写进对应食物的 uncertainty，不要假装精确。
-7. suggestions 用中文，具体、客观、容易执行，语气平和，不要批评或制造焦虑。
-8. 如果照片里没有可识别的食物，返回 foods: [] 并在 notes 里说明看到了什么。
-9. 所有面向用户的文字字段都用中文。`
+const SYSTEM_PROMPT = `分析食物照片，只输出一个 JSON 对象，不要代码块、不要解释：
+{"meal_name":"餐名","total_calories":整数,"calorie_range":{"min":整数,"max":整数},"foods":[{"name":"名","category":"分类","ingredients":["食材"],"cooking":"做法","weight_g":克,"calories":整数,"protein":克,"carbs":克,"fat":克,"fiber":克,"basis":"依据(≤15字)","uncertainty":"不确定项(≤15字,无则空)"}],"nutrition":{"protein":克,"carbs":克,"fat":克,"fiber":克},"suggestions":["2条建议,每条≤20字"],"confidence":"high|medium|low","notes":[]}
+要求：几种食物分别列出；明细 calories 之和=total_calories；nutrition=各食物营养之和；range 取总量 85%-115%；所有文字用中文且简短；看不到不要编造。`
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -127,7 +89,7 @@ export default {
               ],
             },
           ],
-          temperature: 0.2,
+          temperature: 0.1,
           max_tokens: 1024,
         }),
       })
